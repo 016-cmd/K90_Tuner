@@ -156,6 +156,59 @@ fun SettingsScreen(
                 InfoRow("设备", "REDMI K90（annibale）")
                 InfoRow("模块", "K90 音质优化")
             }
+
+            Spacer(Modifier.height(16.dp))
+
+            // ── 特别鸣谢 ──
+            SectionHeader("特别鸣谢")
+            Spacer(Modifier.height(6.dp))
+            GlassSettingsCard {
+                Row(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "🙏",
+                        fontSize = 18.sp, modifier = Modifier.padding(end = 10.dp)
+                    )
+                    Text(
+                        "感谢三位朋友全程参与真机验证与建议反馈，为模块与应用的打磨付出了大量心血：",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 11.sp, lineHeight = 16.sp
+                    )
+                }
+                Spacer(Modifier.height(6.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    listOf(
+                        "柚柒",
+                        "神鸡",
+                        "二十四画生"
+                    ).forEach { name ->
+                        Text(
+                            "@$name",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontSize = 13.sp
+                        )
+                    }
+                }
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    "每一处可靠的效果背后，都有你们的一份信任与陪伴。由衷感谢！",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 10.sp, lineHeight = 15.sp,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                )
+            }
         }
     }
 }
