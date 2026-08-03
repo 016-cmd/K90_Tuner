@@ -2,6 +2,7 @@ package com.k90.tuner.service
 
 import android.content.Context
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -204,9 +205,15 @@ object DolbyTunerManager {
         try {
             ModuleDetector.detect()
             if (!ModuleDetector.isInstalled) {
-                // Root/时序未就绪时首次 detect 可能误判"未安装"（detectedOnce 只跑一次）。
-                // 强制重新检测一次：覆盖 detectedOnce，重新读 module.prop，避免重进误报。
-                ModuleDetector.forceDetect()
+                // 冷启动(重启APP)时 root/模块 mount 可能尚未就绪 → 首帧检测易误判"未安装"。
+                // 轮询等待重试(最多约 5×700ms≈3.5s)：等 root 与模块目录就绪后再判定。
+                // 仅在检测到未安装时进入此循环；切 tab 等其余入口 isInstalled 已正确时直接跳过。
+                var waited = 0
+                while (!ModuleDetector.isInstalled && waited < 5) {
+                    delay(700)
+                    ModuleDetector.forceDetect()
+                    waited++
+                }
                 if (!ModuleDetector.isInstalled) {
                     _statusMsg.value = "❌ 检测到未安装 K90 音质优化 by 016. 模块，请先安装模块"
                     _isLoading.value = false
