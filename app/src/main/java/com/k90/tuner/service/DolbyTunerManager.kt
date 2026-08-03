@@ -203,11 +203,11 @@ object DolbyTunerManager {
     suspend fun loadParams(context: Context): Boolean = withContext(Dispatchers.IO) {
         _isLoading.value = true
         try {
-            ModuleDetector.detect()
+            ModuleDetector.forceDetect()
             if (!ModuleDetector.isInstalled) {
                 // 冷启动(重启APP)时 root/模块 mount 可能尚未就绪 → 首帧检测易误判"未安装"。
-                // 轮询等待重试(最多约 5×700ms≈3.5s)：等 root 与模块目录就绪后再判定。
-                // 仅在检测到未安装时进入此循环；切 tab 等其余入口 isInstalled 已正确时直接跳过。
+                // ModuleDetector.detectedOnce 会缓存首次结果导致切 tab 后不重新确认，
+                // 故此处每次都用 forceDetect 强制重新检测，并轮询等待 root 就绪(最多约 3.5s)。
                 var waited = 0
                 while (!ModuleDetector.isInstalled && waited < 5) {
                     delay(700)
