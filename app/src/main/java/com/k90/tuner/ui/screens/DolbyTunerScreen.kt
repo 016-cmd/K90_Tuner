@@ -47,7 +47,7 @@ fun DolbyTunerScreen(activity: Activity, viewModel: MainViewModel = androidx.lif
     val currentModeName = DolbyTunerManager.currentModeName
     val moduleStatus by viewModel.moduleStatus.collectAsState()
     val hasRoot by viewModel.hasRoot.collectAsState()
-    val canEdit = viewModel.canEdit
+    val canEdit by viewModel.canEdit.collectAsState()
 
     var showConfirmDialog by remember { mutableStateOf(false) }
     var confirmAction by remember { mutableStateOf("") }
@@ -61,10 +61,6 @@ fun DolbyTunerScreen(activity: Activity, viewModel: MainViewModel = androidx.lif
     var showFactoryWarnDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        // 冷启动修复：等待 root/模块检测链路完成（最多 ~6s），
-        // 避开首帧 hasRoot 未就绪时误判 canEdit=false，导致"请先授权"提示卡住、
-        // 检测卡片随后才亮绿灯造成 UI 不一致。就绪后再 loadParams。
-        viewModel.ensureReady()
         DolbyTunerManager.loadParams(activity)
         // 检测 factory 目录并弹警告（会话期内只弹一次）
         if (!DolbyTunerManager.hasFactoryDax.value &&

@@ -9,6 +9,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -28,6 +30,16 @@ class MainViewModel : ViewModel() {
     private val _hasRoot = MutableStateFlow<Boolean?>(null)
     val hasRoot: StateFlow<Boolean?> = _hasRoot.asStateFlow()
 
+    /**
+     * 应用是否可编辑（机型匹配 且 模块已安装 且 已授权 root）。
+     * 由 moduleStatus 与 hasRoot 通过 combine 合成的响应式状态：
+     * 任一源变化都会立即发出新值，UI 的 collectAsState 必触发重组，
+     * 彻底避免首帧用未就绪数据算出 false 后不再刷新导致的"请先授权"卡住。
+     */
+    val canEdit: StateFlow<Boolean> = combine(moduleStatus, hasRoot) { st, root ->
+        st.isDeviceMatch && st.isInstalled && root == true
+    }.stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.Eagerly, false)
+
     private val prefs by lazy { AppContextHolder.ctx.getSharedPreferences("k90_tuner", Context.MODE_PRIVATE) }
 
     init {
@@ -39,12 +51,6 @@ class MainViewModel : ViewModel() {
             _moduleStatus.update { it.copy(isChecking = false, version = "点击下方按钮激活") }
         }
     }
-
-    /** 应用是否可编辑（机型匹配 且 模块已安装 且 已授权 root） */
-    val canEdit: Boolean
-        get() = _moduleStatus.value.isDeviceMatch
-            && _moduleStatus.value.isInstalled
-            && _hasRoot.value == true
 
     private fun autoDetect() {
         viewModelScope.launch(Dispatchers.IO) {
@@ -85,34 +91,6 @@ class MainViewModel : ViewModel() {
                 isDeviceMatch = ModuleDetector.isDeviceMatch,
                 isChecking = false
             )
-        }
-    }
-
-    /**
-     * 冷启动保障：等待检测链路收敛到就绪状态（最多 [timeoutMs]）。
-     * 若 root 状态仍是 null（autoDetect 未完成或未走），静默重查一次 root，
-     * 并刷新 moduleStatus，确保 canEdit 能拿到真实结果，避免首帧误判"请先授权"卡住。
-     * 不弹出 Magisk 授权界面，只同步真实状态。
-     */
-    fun ensureReady(timeoutMs: Long = 6000) {
-        viewModelScope.launch(Dispatchers.IO) {
-            val deadline = System.currentTimeMillis() + timeoutMs
-            while (System.currentTimeMillis() < deadline) {
-                // 检测已完成且 root 已有确定值 → 就绪
-                if (!_moduleStatus.value.isChecking && _hasRoot.value != null) return@launch
-                kotlinx.coroutines.delay(120)
-            }
-            // 超时兜底：root 仍是 null（autoDetect 没跑/失败）→ 静默重查，不弹授权
-            if (_hasRoot.value == null) {
-                val r = WsaShell.hasRoot()
-                _hasRoot.value = r
-                if (r) {
-                    prefs.edit().putBoolean("root_granted", true).apply()
-                    doDetectAndLoad(force = true)
-                } else {
-                    _moduleStatus.update { it.copy(isChecking = false, version = "点击下方按钮激活") }
-                }
-            }
         }
     }
 }
