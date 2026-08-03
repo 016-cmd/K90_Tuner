@@ -210,6 +210,9 @@ fun SettingsScreen(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
                 )
             }
+
+            // 底部预留空间，避免内容被底部 Dock 栏遮挡
+            Spacer(Modifier.height(80.dp))
         }
     }
 }
