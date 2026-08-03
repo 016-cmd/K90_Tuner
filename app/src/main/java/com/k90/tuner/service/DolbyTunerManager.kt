@@ -204,9 +204,14 @@ object DolbyTunerManager {
         try {
             ModuleDetector.detect()
             if (!ModuleDetector.isInstalled) {
-                _statusMsg.value = "❌ 检测到未安装 K90 音质优化 by 016. 模块，请先安装模块"
-                _isLoading.value = false
-                return@withContext false
+                // Root/时序未就绪时首次 detect 可能误判"未安装"（detectedOnce 只跑一次）。
+                // 强制重新检测一次：覆盖 detectedOnce，重新读 module.prop，避免重进误报。
+                ModuleDetector.forceDetect()
+                if (!ModuleDetector.isInstalled) {
+                    _statusMsg.value = "❌ 检测到未安装 K90 音质优化 by 016. 模块，请先安装模块"
+                    _isLoading.value = false
+                    return@withContext false
+                }
             }
             if (!ModuleDetector.isDeviceMatch) {
                 _statusMsg.value = "❌ 机型不匹配，本 APP 仅适配 REDMI K90 标准版（annibale）"
@@ -623,7 +628,7 @@ object DolbyTunerManager {
     //  ═══════════════════════════════════════════
 
     /** 解析三场景 band_optimizer L/R 基值 */
-    private fun parseBandOptimizers(xml: String) {
+    private fun parseBandOptimizers(xml: String, preserveOffsets: Boolean = false) {
         try {
             val scenes = SceneBaselines()
             var parsedCount = 0
@@ -652,7 +657,8 @@ object DolbyTunerManager {
                 }
             }
             _bandBaselines.value = scenes
-            _bandOffsets.value = BandOffsets()
+            // preserveOffsets=true 时保留当前用户偏移（仅刷新基准），否则重置为全 0（初始/一键重置）
+            if (!preserveOffsets) _bandOffsets.value = BandOffsets()
             _hasBandsParsed.value = parsedCount >= 20 * 3
         } catch (_: Exception) {
             _hasBandsParsed.value = false
@@ -812,10 +818,8 @@ object DolbyTunerManager {
         for (i in 0 until arr.length()) {
             val obj = arr.getJSONObject(i)
             if (obj.getString("name") == name) {
+                // 只恢复杜比参数；频段偏移由频段页独立的频段预设管理（两页已隔离）
                 _params.value = parseParamsFromJson(obj)
-                if (obj.has("bandLeft") || obj.has("bandOffsets")) {
-                    _bandOffsets.value = bandOffsetsFromJson(obj)
-                }
                 return true
             }
         }
@@ -893,8 +897,7 @@ object DolbyTunerManager {
             put("virtualBassMixHigh", p.virtualBassMixHigh)
             put("bassExtractionEnable", p.bassExtractionEnable)
             put("bassExtractionCutoffFrequency", p.bassExtractionCutoffFrequency)
-            // 频段偏移量（band_optimizer）一并保存
-            put("bandOffsets", bandOffsetsToJson(_bandOffsets.value))
+            // 注：频段偏移不再存入调音台预设（两页已隔离），由频段页独立的频段预设管理
         }
     }
 
@@ -923,5 +926,84 @@ object DolbyTunerManager {
             bassExtractionEnable = obj.optBoolean("bassExtractionEnable", false),
             bassExtractionCutoffFrequency = obj.optInt("bassExtractionCutoffFrequency", 65)
         )
+    }
+
+    // ═══════════════════════════════════════════
+    //  频段预设管理（独立于调音台预设，仅存 bandOffsets）
+    //  ═══════════════════════════════════════════
+
+    private const val BAND_PREFS_NAME = "dolby_tuner_band_presets"
+    private const val BAND_KEY_LIST = "band_preset_list"
+    private const val MAX_BAND_PRESETS = 5
+
+    /**
+     * 进入频段页时调用：以当前生效文件重新解析三场景基准，
+     * preserveOffsets=true 保留当前偏移（避免把用户/预设偏移清零）。
+     */
+    suspend fun refreshBandBaselines(context: Context) = withContext(Dispatchers.IO) {
+        try {
+            val xml = WsaShell.execSyncCmd("cat $DAX_SYS 2>/dev/null")
+            if (xml.isNotBlank()) {
+                parseBandOptimizers(xml, preserveOffsets = true)
+                // 同步重判当前模式，保证频段页顶部模式显示准确
+                setCurrentModeByFingerprint(xml)
+            }
+        } catch (_: Exception) {}
+    }
+
+    fun getBandPresetNames(context: Context): List<String> {
+        val raw = context.getSharedPreferences(BAND_PREFS_NAME, Context.MODE_PRIVATE)
+            .getString(BAND_KEY_LIST, "[]") ?: "[]"
+        val arr = try { JSONArray(raw) } catch (_: Exception) { JSONArray() }
+        return (0 until arr.length()).map { arr.getJSONObject(it).getString("name") }
+    }
+
+    fun saveBandPreset(context: Context, name: String): String {
+        val prefs = context.getSharedPreferences(BAND_PREFS_NAME, Context.MODE_PRIVATE)
+        val raw = prefs.getString(BAND_KEY_LIST, "[]") ?: "[]"
+        val arr = try { JSONArray(raw) } catch (_: Exception) { JSONArray() }
+
+        val obj = JSONObject().apply {
+            put("name", name)
+            put("bandOffsets", bandOffsetsToJson(_bandOffsets.value))
+        }
+        for (i in 0 until arr.length()) {
+            if (arr.getJSONObject(i).getString("name") == name) {
+                arr.put(i, obj)
+                prefs.edit().putString(BAND_KEY_LIST, arr.toString()).apply()
+                return "同名频段预设已更新"
+            }
+        }
+        if (arr.length() >= MAX_BAND_PRESETS) return "预设已满（最多${MAX_BAND_PRESETS}个），请先删除旧预设"
+        arr.put(obj)
+        prefs.edit().putString(BAND_KEY_LIST, arr.toString()).apply()
+        return "✅ 频段预设「$name」已保存"
+    }
+
+    fun loadBandPreset(context: Context, name: String): Boolean {
+        val raw = context.getSharedPreferences(BAND_PREFS_NAME, Context.MODE_PRIVATE)
+            .getString(BAND_KEY_LIST, "[]") ?: "[]"
+        val arr = try { JSONArray(raw) } catch (_: Exception) { JSONArray() }
+        for (i in 0 until arr.length()) {
+            val obj = arr.getJSONObject(i)
+            if (obj.getString("name") == name) {
+                _bandOffsets.value = bandOffsetsFromJson(obj)
+                return true
+            }
+        }
+        return false
+    }
+
+    fun deleteBandPreset(context: Context, name: String) {
+        val prefs = context.getSharedPreferences(BAND_PREFS_NAME, Context.MODE_PRIVATE)
+        val raw = prefs.getString(BAND_KEY_LIST, "[]") ?: "[]"
+        val arr = try { JSONArray(raw) } catch (_: Exception) { JSONArray() }
+        val out = JSONArray()
+        for (i in 0 until arr.length()) {
+            if (arr.getJSONObject(i).getString("name") != name) {
+                out.put(arr.getJSONObject(i))
+            }
+        }
+        prefs.edit().putString(BAND_KEY_LIST, out.toString()).apply()
     }
 }
