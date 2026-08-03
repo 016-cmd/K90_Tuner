@@ -169,7 +169,7 @@ fun SettingsScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        "🙏",
+                        "🎉",
                         fontSize = 18.sp, modifier = Modifier.padding(end = 10.dp)
                     )
                     Text(
