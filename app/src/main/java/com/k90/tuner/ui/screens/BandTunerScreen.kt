@@ -37,6 +37,7 @@ fun BandTunerScreen(activity: Activity) {
     val isApplying by DolbyTunerManager.isApplying.collectAsState()
     val currentMode by DolbyTunerManager.currentMode.collectAsState()
     val currentModeName = DolbyTunerManager.currentModeName
+    val bandResultMsg by DolbyTunerManager.resultMsg.collectAsState()
 
     var showApplyDialog by remember { mutableStateOf(false) }
     var showSaveDialog by remember { mutableStateOf(false) }
@@ -92,6 +93,25 @@ fun BandTunerScreen(activity: Activity) {
                         Text("当前调音模式：$currentModeName", color = Accent, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                         Text("频段调整仅对当前激活模式生效，另一模式保持独立。切换模式请在模块 WebUI 中操作。", color = onSurfaceVariant, fontSize = 10.sp, lineHeight = 14.sp)
                     }
+                }
+            }
+
+            // 操作结果提示（保存/加载/删除频段预设、应用、重置等）
+            if (bandResultMsg.isNotBlank()) {
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (bandResultMsg.startsWith("❌")) Danger.copy(alpha = 0.15f)
+                        else if (bandResultMsg.startsWith("✅")) Accent.copy(alpha = 0.15f)
+                        else AccentDim.copy(alpha = 0.2f)
+                    )
+                ) {
+                    Text(
+                        bandResultMsg,
+                        color = onSurface, fontSize = 11.sp, lineHeight = 15.sp,
+                        modifier = Modifier.padding(10.dp)
+                    )
                 }
             }
 
