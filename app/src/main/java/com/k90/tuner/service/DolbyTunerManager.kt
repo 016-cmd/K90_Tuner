@@ -2,7 +2,6 @@ package com.k90.tuner.service
 
 import android.content.Context
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -203,22 +202,11 @@ object DolbyTunerManager {
     suspend fun loadParams(context: Context): Boolean = withContext(Dispatchers.IO) {
         _isLoading.value = true
         try {
-            ModuleDetector.forceDetect()
+            ModuleDetector.detect()
             if (!ModuleDetector.isInstalled) {
-                // 冷启动(重启APP)时 root/模块 mount 可能尚未就绪 → 首帧检测易误判"未安装"。
-                // ModuleDetector.detectedOnce 会缓存首次结果导致切 tab 后不重新确认，
-                // 故此处每次都用 forceDetect 强制重新检测，并轮询等待 root 就绪(最多约 3.5s)。
-                var waited = 0
-                while (!ModuleDetector.isInstalled && waited < 5) {
-                    delay(700)
-                    ModuleDetector.forceDetect()
-                    waited++
-                }
-                if (!ModuleDetector.isInstalled) {
-                    _statusMsg.value = "❌ 检测到未安装 K90 音质优化 by 016. 模块，请先安装模块"
-                    _isLoading.value = false
-                    return@withContext false
-                }
+                _statusMsg.value = "❌ 检测到未安装 K90 音质优化 by 016. 模块，请先安装模块"
+                _isLoading.value = false
+                return@withContext false
             }
             if (!ModuleDetector.isDeviceMatch) {
                 _statusMsg.value = "❌ 机型不匹配，本 APP 仅适配 REDMI K90 标准版（annibale）"
