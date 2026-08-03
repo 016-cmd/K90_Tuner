@@ -87,4 +87,32 @@ class MainViewModel : ViewModel() {
             )
         }
     }
+
+    /**
+     * 冷启动保障：等待检测链路收敛到就绪状态（最多 [timeoutMs]）。
+     * 若 root 状态仍是 null（autoDetect 未完成或未走），静默重查一次 root，
+     * 并刷新 moduleStatus，确保 canEdit 能拿到真实结果，避免首帧误判"请先授权"卡住。
+     * 不弹出 Magisk 授权界面，只同步真实状态。
+     */
+    fun ensureReady(timeoutMs: Long = 6000) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val deadline = System.currentTimeMillis() + timeoutMs
+            while (System.currentTimeMillis() < deadline) {
+                // 检测已完成且 root 已有确定值 → 就绪
+                if (!_moduleStatus.value.isChecking && _hasRoot.value != null) return@launch
+                kotlinx.coroutines.delay(120)
+            }
+            // 超时兜底：root 仍是 null（autoDetect 没跑/失败）→ 静默重查，不弹授权
+            if (_hasRoot.value == null) {
+                val r = WsaShell.hasRoot()
+                _hasRoot.value = r
+                if (r) {
+                    prefs.edit().putBoolean("root_granted", true).apply()
+                    doDetectAndLoad(force = true)
+                } else {
+                    _moduleStatus.update { it.copy(isChecking = false, version = "点击下方按钮激活") }
+                }
+            }
+        }
+    }
 }
