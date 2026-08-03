@@ -43,8 +43,6 @@ fun DolbyTunerScreen(activity: Activity, viewModel: MainViewModel = androidx.lif
     val statusMsg by DolbyTunerManager.statusMsg.collectAsState()
     val resultMsg by DolbyTunerManager.resultMsg.collectAsState()
     val hasFactoryDax by DolbyTunerManager.hasFactoryDax.collectAsState()
-    val currentMode by DolbyTunerManager.currentMode.collectAsState()
-    val currentModeName = DolbyTunerManager.currentModeName
     val moduleStatus by viewModel.moduleStatus.collectAsState()
     val hasRoot by viewModel.hasRoot.collectAsState()
     val canEdit by viewModel.canEdit.collectAsState()
@@ -86,7 +84,7 @@ fun DolbyTunerScreen(activity: Activity, viewModel: MainViewModel = androidx.lif
                         Spacer(Modifier.width(10.dp))
                         Column {
                             Text("杜比调音台", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = colors.onSurface)
-                            Text("${currentModeName}模式 · 扬声器", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                            Text("Default · 扬声器", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
                         }
                     }
                 },
