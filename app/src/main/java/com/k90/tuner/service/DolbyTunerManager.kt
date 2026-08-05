@@ -821,36 +821,70 @@ object DolbyTunerManager {
         return false
     }
 
-    private fun bandOffsetsToJson(band: BandOffsets): JSONObject {
+    /**
+     * 将「用户 UI 当前看到的 Medium 场景最终绝对增益」序列化为 JSON。
+     * 预设只存 Medium（因为三场景是同一偏移 Δ 等比写回，存 Medium 即可表达用户意图，
+     * 无论保存前是否已应用，加载时都能用当前实时 Medium 基线倒推出偏移）。
+     * 结构：{medium:{left:{idx:val}, right:{idx:val}}}（下标对齐 ALL_BANDS）
+     */
+    private fun bandSnapshotToJson(scenes: SceneBaselines, band: BandOffsets): JSONObject {
+        val medium = scenes.medium
         val left = JSONObject()
-        band.left.forEach { (k, v) -> left.put(k.toString(), v) }
         val right = JSONObject()
-        band.right.forEach { (k, v) -> right.put(k.toString(), v) }
+        ALL_BANDS.forEachIndexed { i, f ->
+            val arr = medium[f] ?: return@forEachIndexed
+            left.put(i.toString(), arr[0] + (band.left[f] ?: 0))
+            right.put(i.toString(), arr[1] + (band.right[f] ?: 0))
+        }
         return JSONObject().apply {
             put("left", left)
             put("right", right)
         }
     }
-
-    private fun bandOffsetsFromJson(obj: JSONObject): BandOffsets {
+    /**
+     * 从 JSON 恢复频段状态（只恢复 Medium 偏移，不改任何基线）。
+     * 新格式（保存的 Medium 绝对显示值）：用「当前实时生效的 Medium 基线」倒推出偏移量 Δ，
+     * 使 UI 显示==保存时值，且偏移是真实相对当前基线的偏移 → 点"应用"三场景等比同步，无 bug。
+     * 旧格式（纯偏移量 {left/right:{freq:Δ}}）回退：直接作为偏移。
+     */
+    private fun bandSnapshotFromJson(obj: JSONObject): BandOffsets {
         val band = BandOffsets()
         val data = if (obj.has("bandOffsets")) obj.getJSONObject("bandOffsets") else JSONObject()
-        fun readMap(parent: JSONObject, key: String): MutableMap<Int, Int> {
-            val m = mutableMapOf<Int, Int>()
-            try {
-                if (parent.has(key)) {
-                    val o = parent.getJSONObject(key)
-                    val it = o.keys()
-                    while (it.hasNext()) {
-                        val k = it.next()
-                        m[k.toIntOrNull() ?: 0] = o.optInt(k, 0)
-                    }
+        if (data.has("left") || data.has("right")) {
+            val leftSaved = data.optJSONObject("left")
+            val rightSaved = data.optJSONObject("right")
+            val curMedium = _bandBaselines.value.medium
+            ALL_BANDS.forEachIndexed { i, f ->
+                val savedL = leftSaved?.optInt(i.toString())
+                if (savedL != null) {
+                    val baseL = curMedium[f]?.get(0) ?: 0
+                    band.left[f] = savedL - baseL
                 }
-            } catch (_: Exception) {}
-            return m
+                val savedR = rightSaved?.optInt(i.toString())
+                if (savedR != null) {
+                    val baseR = curMedium[f]?.get(1) ?: 0
+                    band.right[f] = savedR - baseR
+                }
+            }
+        } else {
+            // 旧格式：纯偏移量
+            fun readMap(parent: JSONObject, key: String): MutableMap<Int, Int> {
+                val m = mutableMapOf<Int, Int>()
+                try {
+                    if (parent.has(key)) {
+                        val o = parent.getJSONObject(key)
+                        val it = o.keys()
+                        while (it.hasNext()) {
+                            val k = it.next()
+                            m[k.toIntOrNull() ?: 0] = o.optInt(k, 0)
+                        }
+                    }
+                } catch (_: Exception) {}
+                return m
+            }
+            band.left.putAll(readMap(data, "left"))
+            band.right.putAll(readMap(data, "right"))
         }
-        band.left.putAll(readMap(data, "left"))
-        band.right.putAll(readMap(data, "right"))
         return band
     }
 
@@ -957,10 +991,10 @@ object DolbyTunerManager {
         val prefs = context.getSharedPreferences(BAND_PREFS_NAME, Context.MODE_PRIVATE)
         val raw = prefs.getString(BAND_KEY_LIST, "[]") ?: "[]"
         val arr = try { JSONArray(raw) } catch (_: Exception) { JSONArray() }
-
         val obj = JSONObject().apply {
             put("name", name)
-            put("bandOffsets", bandOffsetsToJson(_bandOffsets.value))
+            // 预设只存 Medium 当前显示值（绝对增益），加载时用当前实时基线倒推偏移还原 UI
+            put("bandOffsets", bandSnapshotToJson(_bandBaselines.value, _bandOffsets.value))
         }
         for (i in 0 until arr.length()) {
             if (arr.getJSONObject(i).getString("name") == name) {
@@ -974,7 +1008,6 @@ object DolbyTunerManager {
         prefs.edit().putString(BAND_KEY_LIST, arr.toString()).apply()
         return "✅ 频段预设「$name」已保存"
     }
-
     fun loadBandPreset(context: Context, name: String): Boolean {
         val raw = context.getSharedPreferences(BAND_PREFS_NAME, Context.MODE_PRIVATE)
             .getString(BAND_KEY_LIST, "[]") ?: "[]"
@@ -982,7 +1015,10 @@ object DolbyTunerManager {
         for (i in 0 until arr.length()) {
             val obj = arr.getJSONObject(i)
             if (obj.getString("name") == name) {
-                _bandOffsets.value = bandOffsetsFromJson(obj)
+                // 只恢复 Medium 偏移（不改基线）：
+                // 无论保存前应用与否，都用当前实时 Medium 基线倒推出偏移 → UI 还原保存时值，
+                // 点"应用"时三场景按同一偏移等比写回，不会出现三场景 bug。
+                _bandOffsets.value = bandSnapshotFromJson(obj)
                 return true
             }
         }
