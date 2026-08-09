@@ -67,11 +67,10 @@
 | Kotlin & KotlinX Coroutines | JetBrains | ✅ Apache-2.0 |
 | Coil（coil-compose） | Coil | ✅ Apache-2.0 |
 | DataStore / 序列化 | JetBrains / Android | ✅ Apache-2.0 |
-| Backdrop（液态玻璃视觉效果） | kyant0 | ⚠️ 通过 JitPack 引入，GitHub 仓库未随附明确 LICENSE 文件 |
+| Backdrop（Kyant0 / AndroidLiquidGlass，液态玻璃视觉效果） | 液态玻璃背景 | ✅ Apache-2.0 |
 
-> **关于 Backdrop**：该组件经 JitPack（`io.github.kyant0:backdrop`）引入，用于本工程的液态玻璃背景效果；
-> 其 GitHub 仓库当前未检测到明确 LICENSE 文件。若该组件作者主张相关著作权并希望我们调整使用方式，
-> **请联系我们进行处理**，我们将按要求立即处理并更新本声明。
+> **关于 Backdrop**：该组件（`io.github.kyant0:backdrop`）对应的开发仓库为
+> [`Kyant0/AndroidLiquidGlass`](https://github.com/Kyant0/AndroidLiquidGlass)，依据其 POM 声明采用 **Apache-2.0** 授权。
 
 ---
 
