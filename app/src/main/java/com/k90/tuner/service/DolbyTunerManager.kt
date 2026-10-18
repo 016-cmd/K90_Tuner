@@ -260,7 +260,8 @@ object DolbyTunerManager {
      * 依据**当前生效 dax 内容**实时判定调音模式（所见即真实，指纹优先）。
      *
      * ⚠ 学习 PM 的"所见即真实"哲学：以当前生效 dax 文件的 fingerprint(threshold_high) 为准。
-     * 该指纹在 APP 全部操作（调频段/普通参数/重置）下都不会被修改，稳定可靠（哈曼-32/柏林-36）。
+     * 该指纹在 APP 全部操作（调频段/普通参数/重置）下都不会被修改，稳定可靠
+     * （哈曼 -32/-25，柏林 -36/-58，见 fingerprintMode 内注释）。
      * 路径：双模式都通过 switch_mode.sh bind 到 /odm/etc/dolby/dax-default.xml，读此路径即当前真实生效。
      *
      * 判定逻辑：
@@ -296,23 +297,58 @@ object DolbyTunerManager {
     }
 
     /**
-     * 用 band_regulator threshold_high 指纹判别模式（基于传入的生效 dax 内容实时判定）。
-     * 哈曼：大-54 / 中-32 / 小-19；柏林：大-58 / 中-36 / 小-23。
-     * 命中任一场景指纹即判；全无命中返回 -1。
+     * 用 band_regulator 指纹判别模式（基于传入的生效 dax 内容实时判定）。
+     *
+     * 2026-10 修正：模块 v1.7 起哈曼 47Hz 的 threshold_high 已由 -54/-32/-19 调整为 -35/-25/0，
+     * 旧实现只认「-32」，会导致哈曼模式判定失败（一直显示"检测中…"）。现改为：
+     *   ① 先按 47Hz threshold_high 集合匹配（新旧阈值都认）——对 v1.6 及更早版本同样准确；
+     *   ② 若阈值全无命中（将来又被大改），再用 threshold_low + isolated_band 结构特征兜底。
+     *
+     * 数值指纹：
+     *   哈曼：-32（v1.7 前）/ -25（v1.7+）；柏林：-58（large）/ -36（medium）
+     * 结构指纹（仅兜底）：
+     *   哈曼：large/medium 为 threshold_low=-128 且 isolated_band=false
+     *   柏林：threshold_low=-192 且 isolated_band=true
+     *   ⚠ v1.6 哈曼的结构与柏林同构（-192/true），故结构只能兜底、不能优先。
+     *
+     * 三场景累计投票，票多者胜；两轮都无法判定则返回 -1。
      */
     private fun fingerprintMode(xml: String): Int {
         try {
             if (xml.isBlank()) return -1
-            // 对三场景分别取 47Hz threshold_high，命中任一模式指纹即判
+            var highHarman = 0
+            var highBerlin = 0
+            var structHarman = 0
+            var structBerlin = 0
             for (scene in SCENE_NAMES) {
                 val start = xml.indexOf("<tuning name=\"$scene\"")
                 if (start < 0) continue
                 val end = xml.indexOf("</tuning>", start)
                 val seg = if (end > start) xml.substring(start, end) else xml.substring(start)
-                val m = Regex("<band_regulator frequency=\"47\"[^>]*?threshold_high=\"(-?\\d+)\"").find(seg)
-                val v = m?.groupValues?.get(1)?.toIntOrNull() ?: continue
-                if (v == -32) return MODE_HARMAN
-                if (v == -36) return MODE_BERLIN
+                val attrs = Regex("<band_regulator frequency=\"47\"([^>]*)>").find(seg)
+                    ?.groupValues?.get(1) ?: continue
+                val low = Regex("threshold_low=\"(-?\\d+)\"").find(attrs)
+                    ?.groupValues?.get(1)?.toIntOrNull()
+                val high = Regex("threshold_high=\"(-?\\d+)\"").find(attrs)
+                    ?.groupValues?.get(1)?.toIntOrNull()
+                val iso = Regex("isolated_band=\"(true|false)\"").find(attrs)
+                    ?.groupValues?.get(1) == "true"
+
+                // ① 数值指纹（主判据）——覆盖 v1.7 前后全部三场景取值
+                // 哈曼：large -54(旧)/-35(新)、medium -32(旧)/-25(新)、small -19(旧)
+                if (high == -54 || high == -32 || high == -19 || high == -35 || high == -25) highHarman++
+                // 柏林：large -58、medium -36、small -23
+                if (high == -58 || high == -36 || high == -23) highBerlin++
+                // ② 结构指纹（阈值被大改时的兜底）
+                // 哈曼：v1.7 的 large/medium 为 -128 且非隔离，small 为 -64（v1.6 及更早整份为 -192/true，靠数值指纹识别）
+                if (low == -64 || (low == -128 && !iso)) structHarman++
+                if (low == -192 && iso) structBerlin++
+            }
+            if (highHarman != highBerlin) {
+                return if (highHarman > highBerlin) MODE_HARMAN else MODE_BERLIN
+            }
+            if (structHarman != structBerlin) {
+                return if (structHarman > structBerlin) MODE_HARMAN else MODE_BERLIN
             }
             return -1
         } catch (_: Exception) { return -1 }
@@ -993,7 +1029,7 @@ object DolbyTunerManager {
         val arr = try { JSONArray(raw) } catch (_: Exception) { JSONArray() }
         val obj = JSONObject().apply {
             put("name", name)
-            // 预设只存 Medium 当前显示值（绝对增益），加载时用当前实时基线倒推偏移还原 UI
+            // 方案A：保存三场景绝对频响快照（保存时无需应用也能完整还原所看到的频响）
             put("bandOffsets", bandSnapshotToJson(_bandBaselines.value, _bandOffsets.value))
         }
         for (i in 0 until arr.length()) {
