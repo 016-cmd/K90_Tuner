@@ -160,7 +160,7 @@ fun SettingsScreen(
             SectionHeader("关于")
             Spacer(Modifier.height(6.dp))
             GlassSettingsCard {
-                InfoRow("版本", "v1.6.0")
+                InfoRow("版本", "v1.6.1")
                 InfoRow("开发者", "016-cmd")
                 InfoRow("设备", "REDMI K90（annibale）")
                 InfoRow("模块", "K90 音质优化")

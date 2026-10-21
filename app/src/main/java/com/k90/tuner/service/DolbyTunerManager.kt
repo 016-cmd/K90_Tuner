@@ -25,7 +25,7 @@ import java.io.File
  *   ① cat /odm/etc/dolby/dax-default.xml 读当前系统生效值作为模板
  *   ② Kotlin 正则替换修改参数（普通参数 + 当前模式频段）
  *   ③ 写入 APP 内部目录文件（context.filesDir，无需 root）
- *   ④ su -c cp 覆盖到模块 Link 目录两份模板 + vendor 目录两份模板
+ *   ④ su -c cp 覆盖到模块模板目录（Aoi，旧版 Link）两份模板 + vendor 目录两份模板
  *   ⑤ sh switch_mode.sh [harman|berlin] 重新挂载当前模式 + 重启 audioserver
  */
 object DolbyTunerManager {
@@ -62,12 +62,20 @@ object DolbyTunerManager {
     /** 系统杜比生效路径（切换模式也挂这里，只读用于解析模板） */
     private const val DAX_SYS = "/odm/etc/dolby/dax-default.xml"
 
-    // 哈曼模板（Link + vendor）
-    private val LINK_HARMAN get() = "${moduleBase()}/Link/odm/etc/dolby/dax-default.xml"
+    // 哈曼模板（既有 Aoi，也兼容旧版 Link；优先 Aoi）
+    private val LINK_HARMAN: String get() = moduleTemplate("dax-default.xml")
     private val VENDOR_HARMAN get() = "${moduleBase()}/vendor/etc/dolby/dax-default.xml"
-    // 柏林模板（Link + vendor）
-    private val LINK_BERLIN get() = "${moduleBase()}/Link/odm/etc/dolby/dax-mode-1.xml"
+    // 柏林模板（既有 Aoi，也兼容旧版 Link；优先 Aoi）
+    private val LINK_BERLIN: String get() = moduleTemplate("dax-mode-1.xml")
     private val VENDOR_BERLIN get() = "${moduleBase()}/vendor/etc/dolby/dax-mode-1.xml"
+
+    /** 模块内模板路径：优先 Aoi/odm，旧版模块回退 Link/odm */
+    private fun moduleTemplate(file: String): String {
+        val aoi = "${moduleBase()}/Aoi/odm/etc/dolby/$file"
+        val link = "${moduleBase()}/Link/odm/etc/dolby/$file"
+        val r = WsaShell.execSyncCmd("[ -f '$aoi' ] && echo A || ([ -f '$link' ] && echo L || echo A)")
+        return if (r.trim() == "L") link else aoi
+    }
 
     // factory（模块内新建，两份出厂原文件，不参与挂载，仅 APP 重置使用）
     private val FACTORY_HARMAN get() = "${moduleBase()}/factory/etc/dolby/dax-default.xml"
@@ -403,7 +411,7 @@ object DolbyTunerManager {
      * 将当前 params + 频段偏移写入模块模板，复用 switch_mode.sh 重新挂载 + 重启音频服务。
      *
      * 双模式写入策略（方案A）：
-     *   - 普通杜比参数：同时写入哈曼/柏林两份模板（Link + vendor），切模式不丢。
+     *   - 普通杜比参数：同时写入哈曼/柏林两份模板（Aoi/Link + vendor），切模式不丢。
      *   - 频段 band_optimizer：仅写入当前激活模式对应模板（保持两模式频段差异）。
      *   - 完成后调用 switch_mode.sh 当前模式，重新 mount + 重启 audioserver。
      */
@@ -451,7 +459,7 @@ object DolbyTunerManager {
             // 3. 应用当前模式频段偏移
             paramsXml = applyBandOffsets(paramsXml)
 
-            // 4. 写入当前模式模板（Link + vendor）
+            // 4. 写入当前模式模板（Aoi/Link + vendor）
             val mode = _currentMode.value
             val curLink = if (mode == MODE_HARMAN) LINK_HARMAN else LINK_BERLIN
             val curVendor = if (mode == MODE_HARMAN) VENDOR_HARMAN else VENDOR_BERLIN
