@@ -1,0 +1,16 @@
+*.iml
+.gradle/
+.idea/
+build/
+app/build/
+local.properties
+.DS_Store
+/captures
+.externalNativeBuild/
+.cxx/
+*.apk
+*.aab
+*.jks
+# keystore 默认忽略，但 debug.keystore 需要提交到仓库以保证 CI 签名一致
+*.keystore
+!debug.keystore
