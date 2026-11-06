@@ -205,7 +205,7 @@ fun SettingsScreen(
             }
 
             // 底部预留空间，避免内容被底部 Dock 栏遮挡
-            Spacer(Modifier.height(96.dp))
+            Spacer(Modifier.height(112.dp))
         }
     }
 
