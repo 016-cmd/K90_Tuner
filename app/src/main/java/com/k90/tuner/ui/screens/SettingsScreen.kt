@@ -124,38 +124,6 @@ fun SettingsScreen(
 
             Spacer(Modifier.height(16.dp))
 
-            // ── 背景 ──
-            SectionHeader("背景")
-            Spacer(Modifier.height(6.dp))
-
-            GlassSettingsCard {
-                SettingsRow(
-                    icon = Icons.Rounded.Wallpaper,
-                    label = "自定义壁纸",
-                    subtitle = if (wallpaperUri != null) "已设置" else "未设置",
-                    onClick = { wallpaperPicker.launch("image/*") }
-                )
-                if (wallpaperUri != null) {
-                    HorizontalDivider(
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                        color = MaterialTheme.colorScheme.outlineVariant
-                    )
-                    SettingsRow(
-                        icon = Icons.Rounded.Delete,
-                        label = "移除壁纸",
-                        subtitle = null,
-                        onClick = {
-                            ThemePrefs.setWallpaperUri(ctx, null)
-                            // 删除 Scene 同款壁纸文件
-                            File(ctx.filesDir, "windowBg.jpg").delete()
-                            activity.recreate()
-                        }
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(16.dp))
-
             // ── 关于 ──
             SectionHeader("关于")
             Spacer(Modifier.height(6.dp))

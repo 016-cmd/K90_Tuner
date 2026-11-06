@@ -67,7 +67,8 @@ fun MainApp(activity: Activity) {
             when (tab) {
                 0 -> DolbyTunerScreen(activity = activity)
                 1 -> BandTunerScreen(activity = activity)
-                2 -> SettingsScreen(activity = activity)
+                2 -> AppearanceScreen(activity = activity)
+                3 -> SettingsScreen(activity = activity)
             }
         }
 
@@ -99,6 +100,7 @@ fun MainApp(activity: Activity) {
                 val tabs = listOf(
                     DockTab("调音台", Icons.Default.Tune),
                     DockTab("频段", Icons.Default.Equalizer),
+                    DockTab("外观", Icons.Default.Palette),
                     DockTab("设置", Icons.Default.Settings)
                 )
                 tabs.forEachIndexed { index, tab ->
