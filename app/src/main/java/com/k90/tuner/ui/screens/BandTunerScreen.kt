@@ -23,6 +23,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.k90.tuner.ui.components.GlassSurface
+import com.k90.tuner.ui.theme.Appearance
 import com.k90.tuner.service.DolbyTunerManager
 import kotlinx.coroutines.launch
 
