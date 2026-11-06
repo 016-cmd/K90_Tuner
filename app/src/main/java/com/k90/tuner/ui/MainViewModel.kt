@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.k90.tuner.service.ModuleDetector
 import com.k90.tuner.service.WsaShell
+import com.k90.tuner.ui.theme.DebugMode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -36,13 +37,14 @@ class MainViewModel : ViewModel() {
      * 任一源变化都会立即发出新值，UI 的 collectAsState 必触发重组，
      * 彻底避免首帧用未就绪数据算出 false 后不再刷新导致的"请先授权"卡住。
      */
-    val canEdit: StateFlow<Boolean> = combine(moduleStatus, hasRoot) { st, root ->
-        st.isDeviceMatch && st.isInstalled && root == true
+    val canEdit: StateFlow<Boolean> = combine(moduleStatus, hasRoot, DebugMode.state) { st, root, dbg ->
+        dbg || (st.isDeviceMatch && st.isInstalled && root == true)
     }.stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.Eagerly, false)
 
     private val prefs by lazy { AppContextHolder.ctx.getSharedPreferences("k90_tuner", Context.MODE_PRIVATE) }
 
     init {
+        DebugMode.ensure(AppContextHolder.ctx)
         if (prefs.getBoolean("root_granted", false)) {
             // 之前已授权 → 静默 su 验证；Magisk 永久授权不弹窗
             autoDetect()
