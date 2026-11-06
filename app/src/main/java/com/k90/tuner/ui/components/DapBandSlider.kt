@@ -1,5 +1,7 @@
 package com.k90.tuner.ui.components
 
+import com.k90.tuner.ui.theme.Appearance
+
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -55,7 +57,7 @@ fun DapBandSlider(
     modifier: Modifier = Modifier,
     maxAbsQ4: Int = DapRealtime.MAX_BOOST_Q4,
     trackHeight: Dp = 320.dp,
-    accent: Color = Color(0xFF22C55E),
+    accent: Color = Appearance.accent,
     trackColor: Color = Color(0xFF2E3440),
     tickColor: Color = Color(0xFF6B7280),
     valueColor: Color = Color.Unspecified,

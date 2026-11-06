@@ -1,4 +1,6 @@
 package com.k90.tuner.ui.screens
+import com.k90.tuner.ui.components.GlassSurface
+import com.k90.tuner.ui.theme.Appearance
 import com.k90.tuner.ui.components.fmtFreq
 
 import androidx.compose.foundation.background
@@ -33,8 +35,8 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-private val RAccent = Color(0xFF22C55E)
-private val RAccentDim = Color(0xFF166534)
+private val RAccent get() = Appearance.accent
+private val RAccentDim get() = Appearance.accent.copy(alpha = 0.55f)
 private val RDanger = Color(0xFFEF4444)
 private val RWarning = Color(0xFFF59E0B)
 
@@ -223,11 +225,8 @@ fun DapRealtimeSection() {
         }
     }
 
-    Card(
-        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-    ) {
+    GlassSurface(
+        modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
         Column(Modifier.padding(12.dp)) {
 
             // ── 标题行 ──

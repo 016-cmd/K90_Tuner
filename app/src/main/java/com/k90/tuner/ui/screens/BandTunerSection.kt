@@ -19,11 +19,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.k90.tuner.service.DolbyTunerManager
 import com.k90.tuner.service.DolbyTunerManager.BandChannel
+import com.k90.tuner.ui.components.GlassSurface
+import com.k90.tuner.ui.theme.Appearance
 import com.k90.tuner.ui.components.BandCurveCanvas
 import kotlinx.coroutines.launch
 
-private val BAccent = Color(0xFF22C55E)
-private val BAccentDim = Color(0xFF166534)
+private val BAccent get() = Appearance.accent
+private val BAccentDim get() = Appearance.accent.copy(alpha = 0.55f)
 
 /**
  * 频段调节（band_optimizer）— 标准版，仅 L/R 两声道。
@@ -81,7 +83,7 @@ fun BandTunerSection() {
 
         Spacer(Modifier.height(6.dp))
 
-        val curveColor = if (curveTab == BandChannel.LEFT) Color(0xFF22C55E) else Color(0xFF3B82F6)
+        val curveColor = if (curveTab == BandChannel.LEFT) Appearance.accent else Appearance.secondary
         val curvePts = if (curveTab == BandChannel.LEFT) curvePointsLeft else curvePointsRight
         BandCurveCanvas(points = curvePts, lineColor = curveColor, showDelta = false)
 
@@ -182,11 +184,8 @@ private fun FoldCard(
 ) {
     val onSurface = MaterialTheme.colorScheme.onSurface
     val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-    ) {
+    GlassSurface(
+        modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(horizontal = 10.dp, vertical = 4.dp)) {
             Row(
                 Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))

@@ -25,11 +25,13 @@ import androidx.compose.ui.unit.sp
 import com.k90.tuner.service.DolbyTunerManager
 import com.k90.tuner.service.DolbyTunerManager.DolbyParams
 import com.k90.tuner.ui.MainViewModel
+import com.k90.tuner.ui.components.GlassSurface
+import com.k90.tuner.ui.theme.Appearance
 import com.k90.tuner.ui.components.ModuleStatusCard
 import kotlinx.coroutines.launch
 
-private val Accent = Color(0xFF22C55E)
-private val AccentDim = Color(0xFF166534)
+private val Accent get() = Appearance.accent
+private val AccentDim get() = Appearance.accent.copy(alpha = 0.55f)
 private val Danger = Color(0xFFEF4444)
 private val Warning = Color(0xFFF59E0B)
 
@@ -111,11 +113,8 @@ fun DolbyTunerScreen(activity: Activity, viewModel: MainViewModel = androidx.lif
 
                 if (!canEdit) {
                     // 未授权 Root 或未检测到模块 → 提示需先激活，不显示调音台
-                    Card(
-                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = Warning.copy(alpha = 0.12f))
-                    ) {
+                    GlassSurface(
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
                         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.Top) {
                             Icon(Icons.Default.Info, null, tint = Warning, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(8.dp))
@@ -264,11 +263,8 @@ fun DolbyTunerScreen(activity: Activity, viewModel: MainViewModel = androidx.lif
                     // ── 高级区 ──
                     SectionTitle("高级调谐")
 
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = colors.surfaceVariant)
-                    ) {
+                    GlassSurface(
+                        modifier = Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(12.dp)) {
                             Row(
                                 modifier = Modifier
@@ -362,11 +358,8 @@ fun DolbyTunerScreen(activity: Activity, viewModel: MainViewModel = androidx.lif
                     }
 
                     // ── 温馨提示卡 ──
-Card(
-modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-shape = RoundedCornerShape(12.dp),
-colors = CardDefaults.cardColors(containerColor = Warning.copy(alpha = 0.12f))
-) {
+GlassSurface(
+modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
 Row(Modifier.padding(12.dp), verticalAlignment = Alignment.Top) {
 Icon(Icons.Default.Info, null, tint = Warning, modifier = Modifier.size(18.dp))
 Spacer(Modifier.width(8.dp))
@@ -386,11 +379,8 @@ color = onSurfaceVariant, fontSize = 10.sp, lineHeight = 15.sp
 
                     // ── 预设保存/加载 ──
                     SectionTitle("预设")
-                    Card(
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = colors.surfaceVariant)
-                    ) {
+                    GlassSurface(
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
                         Row(
                             Modifier.fillMaxWidth().padding(12.dp),
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -485,11 +475,8 @@ color = onSurfaceVariant, fontSize = 10.sp, lineHeight = 15.sp
                 } else {
                     Column {
                         presetNames.forEach { name ->
-                            Card(
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp),
-                                shape = RoundedCornerShape(10.dp),
-                                colors = CardDefaults.cardColors(containerColor = colors.surfaceVariant)
-                            ) {
+                            GlassSurface(
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp)) {
                                 Row(
                                     Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
                                     verticalAlignment = Alignment.CenterVertically
@@ -654,11 +641,8 @@ private fun AlertTipCard(statusMsg: String, isLoading: Boolean, isApplying: Bool
             isSuccess -> AccentDim.copy(alpha = 0.5f)
             else -> Warning.copy(alpha = 0.12f)
         }
-        Card(
-            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-            shape = RoundedCornerShape(12.dp),
-            colors = CardDefaults.cardColors(containerColor = bgColor)
-        ) {
+        GlassSurface(
+            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
             Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     when { isError -> Icons.Default.Error; isSuccess -> Icons.Default.CheckCircle; else -> Icons.Default.Info },
@@ -671,11 +655,8 @@ private fun AlertTipCard(statusMsg: String, isLoading: Boolean, isApplying: Bool
         }
     }
     if (isApplying) {
-        Card(
-            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-            shape = RoundedCornerShape(12.dp),
-            colors = CardDefaults.cardColors(containerColor = AccentDim.copy(alpha = 0.4f))
-        ) {
+        GlassSurface(
+            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
             Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                 CircularProgressIndicator(Modifier.size(18.dp), color = Accent, strokeWidth = 2.dp)
                 Spacer(Modifier.width(10.dp))
@@ -703,11 +684,8 @@ private fun ExpandableCard(
     val onSurfaceVariant = colors.onSurfaceVariant
     val outline = colors.outlineVariant
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = colors.surfaceVariant)
-    ) {
+    GlassSurface(
+        modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Switch(
@@ -757,11 +735,8 @@ private fun SimpleSwitchCard(
     val colors = MaterialTheme.colorScheme
     val onSurface = colors.onSurface
     val onSurfaceVariant = colors.onSurfaceVariant
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = colors.surfaceVariant)
-    ) {
+    GlassSurface(
+        modifier = Modifier.fillMaxWidth()) {
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -799,11 +774,8 @@ private fun SimpleSliderCard(
     val colors = MaterialTheme.colorScheme
     val onSurface = colors.onSurface
     val onSurfaceVariant = colors.onSurfaceVariant
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = colors.surfaceVariant)
-    ) {
+    GlassSurface(
+        modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Icon(icon, null, Modifier.size(18.dp), tint = Accent)

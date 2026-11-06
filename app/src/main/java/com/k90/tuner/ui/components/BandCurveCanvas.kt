@@ -1,5 +1,7 @@
 package com.k90.tuner.ui.components
 
+import com.k90.tuner.ui.theme.Appearance
+
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
@@ -40,7 +42,7 @@ fun fmtFreq(f: Int): String {
 @Composable
 fun BandCurveCanvas(
     points: List<Pair<Int, Int>>,
-    lineColor: Color = Color(0xFF22C55E),
+    lineColor: Color = Appearance.accent,
     showDelta: Boolean = false
 ) {
     val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant

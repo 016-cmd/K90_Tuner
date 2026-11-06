@@ -26,8 +26,8 @@ import androidx.compose.ui.unit.sp
 import com.k90.tuner.service.DolbyTunerManager
 import kotlinx.coroutines.launch
 
-private val Accent = Color(0xFF22C55E)
-private val AccentDim = Color(0xFF166534)
+private val Accent get() = Appearance.accent
+private val AccentDim get() = Appearance.accent.copy(alpha = 0.55f)
 private val Danger = Color(0xFFEF4444)
 
 /**
@@ -113,11 +113,8 @@ fun BandTunerScreen(activity: Activity) {
                 .padding(horizontal = 16.dp)
         ) {
             // 模式切换提示
-            Card(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = AccentDim.copy(alpha = 0.2f))
-            ) {
+            GlassSurface(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
                 Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.Equalizer, null, tint = Accent, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
@@ -130,15 +127,8 @@ fun BandTunerScreen(activity: Activity) {
 
             // 操作结果提示（保存/加载/删除频段预设、应用、重置等）
             if (bandResultMsg.isNotBlank()) {
-                Card(
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                    shape = RoundedCornerShape(10.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = if (bandResultMsg.startsWith("❌")) Danger.copy(alpha = 0.15f)
-                        else if (bandResultMsg.startsWith("✅")) Accent.copy(alpha = 0.15f)
-                        else AccentDim.copy(alpha = 0.2f)
-                    )
-                ) {
+                GlassSurface(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
                     Text(
                         bandResultMsg,
                         color = onSurface, fontSize = 11.sp, lineHeight = 15.sp,
@@ -196,11 +186,8 @@ fun BandTunerScreen(activity: Activity) {
             Spacer(Modifier.height(12.dp))
 
             // ── 频段预设（独立于调音台预设，仅存频段偏移） ──
-            Card(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-            ) {
+            GlassSurface(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
                 Column(Modifier.padding(12.dp)) {
                     Text("频段预设", color = onSurface, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     Text("仅保存/加载当前频段偏移，与该模式的杜比参数预设相互独立。", color = onSurfaceVariant, fontSize = 9.sp, lineHeight = 13.sp)
@@ -353,11 +340,8 @@ fun BandTunerScreen(activity: Activity) {
                 } else {
                     Column {
                         bandPresetNames.forEach { name ->
-                            Card(
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp),
-                                shape = RoundedCornerShape(10.dp),
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                            ) {
+                            GlassSurface(
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp)) {
                                 Row(
                                     Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
                                     verticalAlignment = Alignment.CenterVertically
@@ -421,11 +405,8 @@ fun BandTunerScreen(activity: Activity) {
                         Text("导出到：内部存储/Download（.k90eq.json）", fontSize = 11.sp, color = onSurfaceVariant)
                         Spacer(Modifier.height(6.dp))
                         names.forEach { name ->
-                            Card(
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp),
-                                shape = RoundedCornerShape(10.dp),
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                            ) {
+                            GlassSurface(
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp)) {
                                 Row(
                                     Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
                                     verticalAlignment = Alignment.CenterVertically

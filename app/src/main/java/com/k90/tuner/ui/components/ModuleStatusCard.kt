@@ -1,5 +1,7 @@
 package com.k90.tuner.ui.components
 
+import com.k90.tuner.ui.theme.Appearance
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -38,9 +40,9 @@ fun ModuleStatusCard(
         Row(verticalAlignment = Alignment.CenterVertically) {
             val indicatorColor = when {
                 status.isChecking -> MaterialTheme.colorScheme.outline
-                status.deviceCode != "检测中..." && !status.isDeviceMatch -> Color(0xFFCF6679)   // 机型不匹配
-                status.isInstalled && hasRoot == true -> Color(0xFF4CAF50)
-                else -> Color(0xFFCF6679)
+                status.deviceCode != "检测中..." && !status.isDeviceMatch -> Color(0xFFEF4444)   // 机型不匹配
+                status.isInstalled && hasRoot == true -> Appearance.accent
+                else -> Color(0xFFEF4444)
             }
             Box(Modifier.size(12.dp).clip(CircleShape).background(indicatorColor))
             Spacer(Modifier.width(12.dp))
@@ -76,14 +78,14 @@ fun ModuleStatusCard(
                 Icon(
                     if (hasRoot == true) Icons.Rounded.CheckCircle else Icons.Rounded.Cancel,
                     null,
-                    tint = if (hasRoot == true) Color(0xFF4CAF50) else Color(0xFFCF6679),
+                    tint = if (hasRoot == true) Appearance.accent else Color(0xFFEF4444),
                     modifier = Modifier.size(14.dp)
                 )
                 Spacer(Modifier.width(4.dp))
                 Text(
                     if (hasRoot == true) "已获取" else if (hasRoot == null) "未检测" else "未获取",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = if (hasRoot == true) Color(0xFF4CAF50) else Color(0xFFCF6679)
+                    color = if (hasRoot == true) Appearance.accent else Color(0xFFEF4444)
                 )
             }
 
@@ -115,11 +117,11 @@ fun ModuleStatusCard(
             }
             if (hintText != null) {
                 Spacer(Modifier.height(10.dp))
-                Surface(color = Color(0xFFCF6679).copy(alpha = 0.1f), shape = RoundedCornerShape(10.dp)) {
+                Surface(color = Color(0xFFEF4444).copy(alpha = 0.1f), shape = RoundedCornerShape(10.dp)) {
                     Row(Modifier.padding(12.dp), verticalAlignment = Alignment.Top) {
-                        Icon(Icons.Rounded.Info, null, tint = Color(0xFFCF6679), modifier = Modifier.size(18.dp))
+                        Icon(Icons.Rounded.Info, null, tint = Color(0xFFEF4444), modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(10.dp))
-                        Text(hintText, style = MaterialTheme.typography.bodySmall, color = Color(0xFFCF6679).copy(alpha = 0.9f), lineHeight = 18.sp)
+                        Text(hintText, style = MaterialTheme.typography.bodySmall, color = Color(0xFFEF4444).copy(alpha = 0.9f), lineHeight = 18.sp)
                     }
                 }
             }
