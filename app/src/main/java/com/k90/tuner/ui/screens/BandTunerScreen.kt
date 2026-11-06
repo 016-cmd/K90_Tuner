@@ -260,7 +260,7 @@ fun BandTunerScreen(activity: Activity) {
                 color = onSurfaceVariant, fontSize = 10.sp, lineHeight = 14.sp
             )
 
-            Spacer(Modifier.height(96.dp))
+            Spacer(Modifier.height(112.dp))
         }
     }
 
