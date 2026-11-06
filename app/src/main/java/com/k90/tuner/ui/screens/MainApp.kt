@@ -154,14 +154,9 @@ fun MainApp(activity: Activity) {
         ) {
             // 与 Row 的 horizontal 10dp 对齐：可用宽 = maxWidth - 20dp，格宽按 4 等分
             val cellW = (maxWidth - 20.dp) / tabs.size
-            // 静止时严格按 currentPage 对齐（避免动画尾帧残留导致 thumb 偏半格）
-            val idlePage = remember { androidx.compose.runtime.mutableIntStateOf(0) }
-            androidx.compose.runtime.LaunchedEffect(pager.isScrollInProgress) {
-                if (!pager.isScrollInProgress) idlePage.intValue = pager.currentPage
-            }
-            val pagePos = if (pager.isScrollInProgress)
-                pager.currentPage + pager.currentPageOffsetFraction
-            else idlePage.intValue.toFloat()
+            var dragging by remember { mutableStateOf(false) }
+            val rawPos = pager.currentPage + pager.currentPageOffsetFraction
+            val pagePos = if (dragging) rawPos else pager.currentPage.toFloat()
             val thumbX = cellW * pagePos
             // 与 DolbyTuner 一致：胶囊高 54dp、圆角 = 高度一半、深色白 14% / 浅色黑 7%
             val thumbW = (cellW - 2.dp).coerceAtLeast(24.dp)
@@ -178,12 +173,14 @@ fun MainApp(activity: Activity) {
                     .fillMaxSize()
                     .pointerInput(cellW, screenW) {
                         detectDragGestures(
+                            onDragStart = { dragging = true },
                             onDrag = { change, amount ->
                                 change.consume()
                                 val ratio = screenW.value / cellW.value.coerceAtLeast(1f)
                                 scope.launch { pager.dispatchRawDelta(amount.x * ratio) }
                             },
                             onDragEnd = {
+                                dragging = false
                                 val target = pager.currentPage +
                                         if (pager.currentPageOffsetFraction > 0.12f) 1
                                         else if (pager.currentPageOffsetFraction < -0.12f) -1
