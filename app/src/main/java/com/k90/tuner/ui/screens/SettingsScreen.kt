@@ -56,6 +56,13 @@ fun SettingsScreen(
     var themeMode by remember { mutableStateOf(ThemePrefs.getMode(ctx)) }
     var wallpaperUri by remember { mutableStateOf(ThemePrefs.getWallpaperUri(ctx)) }
     var showLicense by remember { mutableStateOf(false) }
+    val appVersion = remember {
+        try {
+            ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName ?: ""
+        } catch (_: Exception) {
+            ""
+        }
+    }
     val licenseText = remember {
         runCatching {
             ctx.assets.open("license_agpl3.txt").bufferedReader().use { it.readText() }
@@ -149,7 +156,7 @@ fun SettingsScreen(
             SectionHeader("关于")
             Spacer(Modifier.height(6.dp))
             GlassSettingsCard {
-                InfoRow("版本", "v1.6.1") { bump() }
+                InfoRow("版本", "v$appVersion") { bump() }
                 InfoRow("开发者", "016-cmd")
                 InfoRow("设备", "REDMI K90（annibale）")
                 InfoRow("模块", "K90 音质优化")
