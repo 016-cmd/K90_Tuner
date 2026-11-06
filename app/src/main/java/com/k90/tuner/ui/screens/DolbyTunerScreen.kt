@@ -52,7 +52,7 @@ fun DolbyTunerScreen(activity: Activity, viewModel: MainViewModel = androidx.lif
     val moduleStatus by viewModel.moduleStatus.collectAsState()
     val hasRoot by viewModel.hasRoot.collectAsState()
     // 调试模式：绕过「状态消息」门控，让全部卡片可见
-    val debugUi = com.com.k90.tuner.ui.theme.DebugMode.on(
+    val debugUi = com.k90.tuner.ui.theme.DebugMode.on(
         androidx.compose.ui.platform.LocalContext.current
     )
     val canEdit by viewModel.canEdit.collectAsState()
