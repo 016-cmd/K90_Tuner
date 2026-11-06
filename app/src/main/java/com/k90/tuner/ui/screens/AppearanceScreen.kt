@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -53,6 +54,7 @@ import com.k90.tuner.ui.theme.subInk
  * 「外观」Tab —— 平铺成一张张卡片，不折叠。
  * 参数与 DolbyTuner / K90PM / K100PM 同一套（Appearance）。
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppearanceScreen(activity: Activity) {
     val ctx = LocalContext.current
