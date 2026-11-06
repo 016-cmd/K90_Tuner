@@ -129,7 +129,7 @@ fun DolbyTunerScreen(activity: Activity, viewModel: MainViewModel = androidx.lif
                             )
                         }
                     }
-                    Spacer(Modifier.height(100.dp))
+                    Spacer(Modifier.height(110.dp))
                 } else {
                 AlertTipCard(statusMsg, isLoading, isApplying)
 
@@ -417,7 +417,7 @@ color = onSurfaceVariant, fontSize = 10.sp, lineHeight = 15.sp
                             }
                         }
                     }
-                    Spacer(Modifier.height(100.dp))
+                    Spacer(Modifier.height(110.dp))
                 }
                 }  // 关闭 else (canEdit 门控)
             }

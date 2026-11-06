@@ -154,7 +154,14 @@ fun MainApp(activity: Activity) {
         ) {
             // 与 Row 的 horizontal 10dp 对齐：可用宽 = maxWidth - 20dp，格宽按 4 等分
             val cellW = (maxWidth - 20.dp) / tabs.size
-            val pagePos = pager.currentPage + pager.currentPageOffsetFraction
+            // 静止时严格按 currentPage 对齐（避免动画尾帧残留导致 thumb 偏半格）
+            val idlePage = remember { androidx.compose.runtime.mutableIntStateOf(0) }
+            androidx.compose.runtime.LaunchedEffect(pager.isScrollInProgress) {
+                if (!pager.isScrollInProgress) idlePage.intValue = pager.currentPage
+            }
+            val pagePos = if (pager.isScrollInProgress)
+                pager.currentPage + pager.currentPageOffsetFraction
+            else idlePage.intValue.toFloat()
             val thumbX = cellW * pagePos
             // 与 DolbyTuner 一致：胶囊高 54dp、圆角 = 高度一半、深色白 14% / 浅色黑 7%
             val thumbW = (cellW - 2.dp).coerceAtLeast(24.dp)
@@ -221,7 +228,6 @@ fun MainApp(activity: Activity) {
                                 .weight(1f)
                                 .fillMaxHeight()
                                 .clip(RoundedCornerShape(16.dp))
-                                .jellyPress(Appearance.jelly > 0)
                                 .jellyPress(Appearance.jelly > 0)
                                 .clickable(
                                     interactionSource = interaction,

@@ -94,7 +94,7 @@ fun AppearanceScreen(activity: Activity) {
     ) { padding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 70.dp)
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 96.dp)
         ) {
             item { Spacer(Modifier.height(6.dp)) }
 
