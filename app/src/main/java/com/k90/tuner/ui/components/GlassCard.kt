@@ -1,4 +1,4 @@
-package com.k90pm.tuner.ui.components
+package com.k90.tuner.ui.components
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -12,9 +12,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
-import com.k90pm.tuner.ui.theme.Appearance
-import com.k90pm.tuner.ui.theme.cardEnter
-import com.k90pm.tuner.ui.theme.glassSurface
+import com.k90.tuner.ui.theme.Appearance
+import com.k90.tuner.ui.theme.cardEnter
+import com.k90.tuner.ui.theme.glassSurface
 
 /**
  * 液态玻璃卡片（Backdrop 真折射）。
