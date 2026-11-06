@@ -1,5 +1,7 @@
 package com.k90.tuner.ui.screens
 
+import com.k90.tuner.ui.theme.jellyPress
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -161,6 +163,7 @@ private fun CurveTab(label: String, selected: Boolean, onClick: () -> Unit, modi
     Box(
         modifier.clip(RoundedCornerShape(8.dp))
             .background(if (selected) BAccent else Color.Transparent)
+            .jellyPress(Appearance.jelly > 0)
             .clickable(onClick = onClick)
             .padding(vertical = 6.dp),
         contentAlignment = Alignment.Center
@@ -189,6 +192,7 @@ private fun FoldCard(
         Column(Modifier.padding(horizontal = 10.dp, vertical = 4.dp)) {
             Row(
                 Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
+                    .jellyPress(Appearance.jelly > 0)
                     .clickable { onToggle(!expanded) }
                     .padding(horizontal = 6.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically

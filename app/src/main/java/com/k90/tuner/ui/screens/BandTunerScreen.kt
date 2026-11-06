@@ -1,5 +1,7 @@
 package com.k90.tuner.ui.screens
 
+import androidx.compose.foundation.layout.WindowInsets
+
 import android.app.Activity
 import androidx.compose.foundation.layout.*
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -90,6 +92,7 @@ fun BandTunerScreen(activity: Activity) {
     val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             TopAppBar(
                 title = {
@@ -257,7 +260,7 @@ fun BandTunerScreen(activity: Activity) {
                 color = onSurfaceVariant, fontSize = 10.sp, lineHeight = 14.sp
             )
 
-            Spacer(Modifier.height(80.dp))
+            Spacer(Modifier.height(70.dp))
         }
     }
 

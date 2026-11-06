@@ -323,6 +323,7 @@ private fun WallButton(text: String, icon: ImageVector, onClick: () -> Unit) {
             .clip(RoundedCornerShape(12.dp))
             .background(Color.White.copy(alpha = 0.92f))
             .jellyPress(Appearance.jelly > 0)
+            .jellyPress(Appearance.jelly > 0)
             .clickable { onClick() },
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically

@@ -1,5 +1,11 @@
 package com.k90.tuner.ui.screens
 
+import androidx.compose.foundation.layout.WindowInsets
+
+import com.k90.tuner.ui.theme.Appearance
+
+import com.k90.tuner.ui.theme.jellyPress
+
 import android.app.Activity
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -68,6 +74,7 @@ fun SettingsScreen(
     }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             TopAppBar(
                 title = { Text("设置", fontWeight = FontWeight.Bold) },
@@ -198,7 +205,7 @@ fun SettingsScreen(
             }
 
             // 底部预留空间，避免内容被底部 Dock 栏遮挡
-            Spacer(Modifier.height(80.dp))
+            Spacer(Modifier.height(70.dp))
         }
     }
 
@@ -327,6 +334,7 @@ private fun ThemeOption(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .jellyPress(Appearance.jelly > 0)
             .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -361,6 +369,7 @@ private fun SettingsRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .jellyPress(Appearance.jelly > 0)
             .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically

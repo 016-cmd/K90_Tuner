@@ -1,5 +1,9 @@
 package com.k90.tuner.ui.screens
 
+import androidx.compose.foundation.layout.WindowInsets
+
+import com.k90.tuner.ui.theme.jellyPress
+
 import android.app.Activity
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
@@ -78,6 +82,7 @@ fun DolbyTunerScreen(activity: Activity, viewModel: MainViewModel = androidx.lif
     val outline = colors.outlineVariant
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             TopAppBar(
                 title = {
@@ -124,7 +129,7 @@ fun DolbyTunerScreen(activity: Activity, viewModel: MainViewModel = androidx.lif
                             )
                         }
                     }
-                    Spacer(Modifier.height(80.dp))
+                    Spacer(Modifier.height(100.dp))
                 } else {
                 AlertTipCard(statusMsg, isLoading, isApplying)
 
@@ -271,6 +276,7 @@ fun DolbyTunerScreen(activity: Activity, viewModel: MainViewModel = androidx.lif
                                     .fillMaxWidth()
                                     .clip(RoundedCornerShape(10.dp))
                                     .background(AccentDim.copy(alpha = 0.2f))
+                                    .jellyPress(Appearance.jelly > 0)
                                     .then(Modifier.clickable { showAdvanced = !showAdvanced })
                                     .padding(horizontal = 12.dp, vertical = 10.dp),
                                 verticalAlignment = Alignment.CenterVertically
@@ -411,7 +417,7 @@ color = onSurfaceVariant, fontSize = 10.sp, lineHeight = 15.sp
                             }
                         }
                     }
-                    Spacer(Modifier.height(80.dp))
+                    Spacer(Modifier.height(100.dp))
                 }
                 }  // 关闭 else (canEdit 门控)
             }
@@ -846,6 +852,7 @@ private fun ParamDropdown(
         Spacer(Modifier.weight(1f))
         Box(
             Modifier.clip(RoundedCornerShape(6.dp)).background(AccentDim.copy(alpha = 0.35f))
+                .jellyPress(Appearance.jelly > 0)
                 .clickable { expanded = true }
                 .padding(horizontal = 10.dp, vertical = 4.dp)
         ) {

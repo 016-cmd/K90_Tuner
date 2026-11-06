@@ -1,5 +1,7 @@
 package com.k90.tuner.ui.screens
 
+import androidx.compose.foundation.layout.WindowInsets
+
 import android.app.Activity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -68,6 +70,7 @@ fun AppearanceScreen(activity: Activity) {
     val hasLocal = ThemePrefs.getWallpaperUri(ctx) != null
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             TopAppBar(
                 title = {
@@ -91,7 +94,7 @@ fun AppearanceScreen(activity: Activity) {
     ) { padding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 78.dp)
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 70.dp)
         ) {
             item { Spacer(Modifier.height(6.dp)) }
 

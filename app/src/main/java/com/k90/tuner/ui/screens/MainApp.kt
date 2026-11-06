@@ -222,6 +222,7 @@ fun MainApp(activity: Activity) {
                                 .fillMaxHeight()
                                 .clip(RoundedCornerShape(16.dp))
                                 .jellyPress(Appearance.jelly > 0)
+                                .jellyPress(Appearance.jelly > 0)
                                 .clickable(
                                     interactionSource = interaction,
                                     indication = null
