@@ -51,6 +51,10 @@ fun DolbyTunerScreen(activity: Activity, viewModel: MainViewModel = androidx.lif
     val hasFactoryDax by DolbyTunerManager.hasFactoryDax.collectAsState()
     val moduleStatus by viewModel.moduleStatus.collectAsState()
     val hasRoot by viewModel.hasRoot.collectAsState()
+    // 调试模式：绕过「状态消息」门控，让全部卡片可见
+    val debugUi = com.com.k90.tuner.ui.theme.DebugMode.on(
+        androidx.compose.ui.platform.LocalContext.current
+    )
     val canEdit by viewModel.canEdit.collectAsState()
 
     var showConfirmDialog by remember { mutableStateOf(false) }
@@ -131,7 +135,7 @@ fun DolbyTunerScreen(activity: Activity, viewModel: MainViewModel = androidx.lif
                     }
                     Spacer(Modifier.height(110.dp))
                 } else {
-                AlertTipCard(statusMsg, isLoading, isApplying)
+                if (!debugUi) AlertTipCard(statusMsg, isLoading, isApplying)
 
                 if (isLoading) {
                     Box(Modifier.fillMaxWidth().padding(vertical = 40.dp), contentAlignment = Alignment.Center) {
@@ -139,7 +143,7 @@ fun DolbyTunerScreen(activity: Activity, viewModel: MainViewModel = androidx.lif
                     }
                 }
 
-                if (!isLoading && statusMsg.isBlank() && !isApplying) {
+                if (!isLoading && (statusMsg.isBlank() || debugUi) && !isApplying) {
                     SectionTitle("快速开关")
 
                     // 1. 对话增强
