@@ -753,6 +753,12 @@ object DolbyTunerManager {
         return r.contains("STACK=1") to r.contains("DB=1")
     }
 
+    /** 全文所有匹配（用于 peak-value 这类跨场景必须一致的参数） */
+    private fun replaceInAllProfiles(xml: String, paramName: String, newValue: String): String {
+        val regex = Regex("(<${Regex.escape(paramName)}\\s+value\\s*=\\s*\")([^\"]*)(\"\\s*/>)")
+        return regex.replace(xml, "$1$newValue$3")
+    }
+
     private fun replaceInSpeaker(xml: String, paramName: String, newValue: String): String {
         val regex = Regex("(<${Regex.escape(paramName)}\\s+value\\s*=\\s*\")([^\"]*)(\"\\s*/>)")
         return regex.replaceFirst(xml, "$1$newValue$3")
