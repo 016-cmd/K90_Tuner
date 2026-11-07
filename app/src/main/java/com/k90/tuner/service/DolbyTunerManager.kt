@@ -459,37 +459,44 @@ object DolbyTunerManager {
             // 3. 应用当前模式频段偏移
             paramsXml = applyBandOffsets(paramsXml)
 
-            // 4. 写入当前模式模板（Aoi/Link + vendor）
+            // 4. 写回当前模式模板（Aoi / Link / 模块 odm / vendor 全覆盖）
             val mode = _currentMode.value
-            val curLink = if (mode == MODE_HARMAN) LINK_HARMAN else LINK_BERLIN
-            val curVendor = if (mode == MODE_HARMAN) VENDOR_HARMAN else VENDOR_BERLIN
-            writeInternalAndCp(context, paramsXml, listOf(curLink, curVendor))
+            val curFile = if (mode == MODE_HARMAN) "dax-default.xml" else "dax-mode-1.xml"
+            val writeErr = writeToTargets(context, paramsXml, listOf(curFile))
+            if (writeErr != null) {
+                _resultMsg.value = writeErr
+                _isApplying.value = false
+                return@withContext false
+            }
 
             // 5. 普通参数同步写入另一模式模板（不含当前模式频段）
             val otherMode = if (mode == MODE_HARMAN) MODE_BERLIN else MODE_HARMAN
             val otherXml = readOtherModeTemplate(otherMode)
             if (otherXml.isNotBlank()) {
                 val otherParamsXml = applyParamsToXml(otherXml, _params.value)
-                val otherLink = if (otherMode == MODE_HARMAN) LINK_HARMAN else LINK_BERLIN
-                val otherVendor = if (otherMode == MODE_HARMAN) VENDOR_HARMAN else VENDOR_BERLIN
-                writeInternalAndCp(context, otherParamsXml, listOf(otherLink, otherVendor))
+                val otherFile = if (otherMode == MODE_HARMAN) "dax-default.xml" else "dax-mode-1.xml"
+                writeToTargets(context, otherParamsXml, listOf(otherFile))
             }
 
-            // 6. 复用模块 switch_mode.sh 重新挂载当前模式 + 重启音频服务
-            val modeArg = if (mode == MODE_HARMAN) "harman" else "berlin"
-            val switchOk = WsaShell.execSyncCmd(
-                "sh ${moduleBase()}/switch_mode.sh $modeArg && echo OK || echo FAIL"
-            ).contains("OK")
+            // 6. 重挂当前模式 + 杀 DMS 与 audioserver（等库重建在同一条脚本里）
+            val mountErr = ensureMounted(mode)
+            if (mountErr != null) {
+                _resultMsg.value = mountErr
+                _isApplying.value = false
+                return@withContext false
+            }
+            WsaShell.execSyncCmd("echo '${if (mode == MODE_HARMAN) 0 else 1}' > $MODE_FILE 2>/dev/null")
+            val (restartOk, dbOk) = restartDolbyStack()
 
             loadParams(context)
             // 6.5 音频服务重启会清空 DSP 里的实时层 GEQ → 写回去
-            val rtOk = if (switchOk) reapplyRealtimeAfterRestart(context) else false
-            if (switchOk) {
-                _resultMsg.value = "✅ 参数已保存并生效（${currentModeName}模式）！音频服务已重启，效果即时生效。" +
-                    (if (rtOk) "实时层 GEQ 已自动写回。" else "实时层 GEQ 暂未写回（音频服务可能仍在启动），到实时层拖一下即可恢复。") +
-                    "请不要频繁应用参数。"
+            val rtOk = if (restartOk) reapplyRealtimeAfterRestart(context) else false
+            if (restartOk) {
+                _resultMsg.value = "✅ 参数已保存并生效（${currentModeName}模式）！杜比服务与音频服务都已重载" +
+                    (if (dbOk) "，参数库已重建。" else "，参数库重建较慢，听感可能延迟几秒。") +
+                    (if (rtOk) "实时层 GEQ 已自动写回。" else "实时层 GEQ 暂未写回（音频服务可能仍在启动），到实时层拖一下即可恢复。")
             } else {
-                _resultMsg.value = "✅ 参数已保存（${currentModeName}模式）！但音频服务重启失败，请重启手机后生效。"
+                _resultMsg.value = "✅ 参数已保存（${currentModeName}模式）！但服务重载失败，请重启手机后生效。"
             }
             _isApplying.value = false
             true
@@ -517,21 +524,21 @@ object DolbyTunerManager {
     /** 仅应用普通参数（speaker + tuning），不改频段 */
     private fun applyParamsToXml(xml: String, p: DolbyParams): String {
         var out = xml
-        out = replaceInSpeakerEndpoints(out, "dialog-enhancer-enable", boolToXml(p.dialogEnhancerEnable))
-        out = replaceInSpeakerEndpoints(out, "dialog-enhancer-amount", p.dialogEnhancerAmount.toString())
-        out = replaceInSpeakerEndpoints(out, "dialog-enhancer-ducking", p.dialogEnhancerDucking.toString())
-        out = replaceInSpeakerEndpoints(out, "bass-enhancer-enable", boolToXml(p.bassEnhancerEnable))
-        out = replaceInSpeakerEndpoints(out, "virtual-bass-process-enable", boolToXml(p.virtualBassProcessEnable))
-        out = replaceInSpeakerEndpoints(out, "surround-decoder-enable", boolToXml(p.surroundDecoderEnable))
-        out = replaceInSpeakerEndpoints(out, "surround-boost", p.surroundBoost.toString())
-        out = replaceInSpeakerEndpoints(out, "volume-leveler-amount", if (p.volumeLevelerEnable) "1" else "0")
-        out = replaceInSpeakerEndpoints(out, "virtualizer-enable", boolToXml(p.virtualizerEnable))
-        out = replaceInSpeakerEndpoints(out, "virtualizer-start-band", p.virtualizerStartBand.toString())
+        out = replaceInSpeakerEndpoints(out, "dialog-enhancer-enable", boolToXml(p.dialogEnhancerEnable), emptySet())
+        out = replaceInSpeakerEndpoints(out, "dialog-enhancer-amount", p.dialogEnhancerAmount.toString(), emptySet())
+        out = replaceInSpeakerEndpoints(out, "dialog-enhancer-ducking", p.dialogEnhancerDucking.toString(), emptySet())
+        out = replaceInSpeakerEndpoints(out, "bass-enhancer-enable", boolToXml(p.bassEnhancerEnable), emptySet())
+        out = replaceInSpeakerEndpoints(out, "virtual-bass-process-enable", boolToXml(p.virtualBassProcessEnable), emptySet())
+        out = replaceInSpeakerEndpoints(out, "surround-decoder-enable", boolToXml(p.surroundDecoderEnable), emptySet())
+        out = replaceInSpeakerEndpoints(out, "surround-boost", p.surroundBoost.toString(), emptySet())
+        out = replaceInSpeakerEndpoints(out, "volume-leveler-amount", if (p.volumeLevelerEnable) "1" else "0", emptySet())
+        out = replaceInSpeakerEndpoints(out, "virtualizer-enable", boolToXml(p.virtualizerEnable), emptySet())
+        out = replaceInSpeakerEndpoints(out, "virtualizer-start-band", p.virtualizerStartBand.toString(), emptySet())
         out = replaceInSpeakerEndpoints(out, "calibration-boost", p.calibrationBoost.toString(), emptySet())
         // volmax-boost 每个 profile 各一份：必须改所有 speaker 端点，否则只改到 Default
         out = replaceInSpeakerEndpoints(out, "volmax-boost", p.volmaxBoost.toString(), emptySet())
-        out = replaceInSpeakerEndpoints(out, "peak-value", p.peakValue.toString())
-        out = replaceInSpeakerEndpoints(out, "hearing-protection-enable", boolToXml(p.hearingProtectionEnable))
+        out = replaceInAllProfiles(out, "peak-value", p.peakValue.toString())
+        out = replaceInSpeakerEndpoints(out, "hearing-protection-enable", boolToXml(p.hearingProtectionEnable), emptySet())
         out = replaceInAllTunings(out, "bass-enhancer-boost", p.bassEnhancerBoost.toString())
         out = replaceInAllTunings(out, "bass-enhancer-cutoff-frequency", p.bassEnhancerCutoffFrequency.toString())
         out = replaceInAllTunings(out, "virtual-bass-mode", p.virtualBassMode.toString())
@@ -590,32 +597,40 @@ object DolbyTunerManager {
                 return@withContext false
             }
 
-            val curLink = if (mode == MODE_HARMAN) LINK_HARMAN else LINK_BERLIN
-            val curVendor = if (mode == MODE_HARMAN) VENDOR_HARMAN else VENDOR_BERLIN
-            writeInternalAndCp(context, factoryXml, listOf(curLink, curVendor))
+            val curFile = if (mode == MODE_HARMAN) "dax-default.xml" else "dax-mode-1.xml"
+            val writeErr = writeToTargets(context, factoryXml, listOf(curFile))
+            if (writeErr != null) {
+                _resultMsg.value = writeErr
+                _isApplying.value = false
+                return@withContext false
+            }
 
             val otherMode = if (mode == MODE_HARMAN) MODE_BERLIN else MODE_HARMAN
             val otherFactory = if (otherMode == MODE_HARMAN) FACTORY_HARMAN else FACTORY_BERLIN
             val otherFactoryXml = WsaShell.execSyncCmd("cat $otherFactory 2>/dev/null")
             if (otherFactoryXml.isNotBlank()) {
-                val otherLink = if (otherMode == MODE_HARMAN) LINK_HARMAN else LINK_BERLIN
-                val otherVendor = if (otherMode == MODE_HARMAN) VENDOR_HARMAN else VENDOR_BERLIN
-                writeInternalAndCp(context, otherFactoryXml, listOf(otherLink, otherVendor))
+                val otherFile = if (otherMode == MODE_HARMAN) "dax-default.xml" else "dax-mode-1.xml"
+                writeToTargets(context, otherFactoryXml, listOf(otherFile))
             }
 
-            val modeArg = if (mode == MODE_HARMAN) "harman" else "berlin"
-            val switchOk = WsaShell.execSyncCmd(
-                "sh ${moduleBase()}/switch_mode.sh $modeArg && echo OK || echo FAIL"
-            ).contains("OK")
+            val mountErr = ensureMounted(mode)
+            if (mountErr != null) {
+                _resultMsg.value = mountErr
+                _isApplying.value = false
+                return@withContext false
+            }
+            WsaShell.execSyncCmd("echo '${if (mode == MODE_HARMAN) 0 else 1}' > $MODE_FILE 2>/dev/null")
+            val (restartOk, dbOk) = restartDolbyStack()
 
             loadParams(context)
             // 7.5 音频服务重启会清空实时层 GEQ → 写回去
-            val rtOk = if (switchOk) reapplyRealtimeAfterRestart(context) else false
-            if (switchOk) {
-                _resultMsg.value = "✅ 已重置为模块默认参数（${currentModeName}模式）并生效！音频服务已重启。" +
+            val rtOk = if (restartOk) reapplyRealtimeAfterRestart(context) else false
+            if (restartOk) {
+                _resultMsg.value = "✅ 已重置为模块默认参数（${currentModeName}模式）并生效！杜比服务与音频服务都已重载" +
+                    (if (dbOk) "，参数库已重建。" else "，参数库重建较慢，听感可能延迟几秒。") +
                     (if (rtOk) "实时层 GEQ 已自动写回。" else "实时层 GEQ 暂未写回（音频服务可能仍在启动），到实时层拖一下即可恢复。")
             } else {
-                _resultMsg.value = "✅ 已重置为模块默认参数（${currentModeName}模式）！但音频服务重启失败，请重启手机后生效。"
+                _resultMsg.value = "✅ 已重置为模块默认参数（${currentModeName}模式）！但服务重载失败，请重启手机后生效。"
             }
             _isApplying.value = false
             true
@@ -651,6 +666,92 @@ object DolbyTunerManager {
     // ═══════════════════════════════════════════
     //  XML 替换辅助
     // ═══════════════════════════════════════════
+
+    // ═══════════════════════════════════════════
+    //  模块文件写入 / 挂载校验 / 链路重载
+    // ═══════════════════════════════════════════
+
+    /** 某份模板在所有可能出现的位置：Aoi / Link / 模块 odm / vendor */
+    private fun daxTargetsFor(file: String): List<String> = listOf(
+        "${moduleBase()}/Aoi/odm/etc/dolby/$file",
+        "${moduleBase()}/Link/odm/etc/dolby/$file",
+        "${moduleBase()}/odm/etc/dolby/$file",
+        "${moduleBase()}/vendor/etc/dolby/$file"
+    )
+
+    /** 一次 su 把 xml 写回所有存在的目标；返回错误文案或 null */
+    private fun writeToTargets(context: Context, xml: String, files: List<String>): String? {
+        val f = File(context.filesDir, "k90_tuner_dax.xml")
+        f.writeText(xml, Charsets.UTF_8)
+        val path = f.absolutePath
+        val sb = StringBuilder("set +e; n=0;")
+        for (name in files) for (t in daxTargetsFor(name)) {
+            sb.append(" [ -f '$t' ] && cp -f '$path' '$t' && chmod 644 '$t' && n=\$((n+1));")
+        }
+        sb.append(" echo WROTE=\$n")
+        val r = WsaShell.execSyncCmd(sb.toString())
+        val n = r.substringAfter("WROTE=", "").trim().substringBefore(" ").toIntOrNull() ?: 0
+        return if (n > 0) null else "❌ 模块里没有可写的 dax 模板（Aoi/Link/vendor 都不存在）"
+    }
+
+    /** 把当前模式的模板挂到 /odm 与 /vendor；不一致就补挂 */
+    private fun ensureMounted(mode: Int): String? {
+        val file = if (mode == MODE_HARMAN) "dax-default.xml" else "dax-mode-1.xml"
+        val src = moduleTemplate(file)
+        val vsrc = "${moduleBase()}/vendor/etc/dolby/$file"
+        val out = WsaShell.execSyncCmd("md5sum '$src' '$DAX_SYS' 2>/dev/null").trim()
+        val map = out.lines().mapNotNull { line ->
+            val p = line.trim().split(Regex("\\s+"), 2)
+            if (p.size == 2) p[1].trim().removePrefix("*") to p[0].trim() else null
+        }.toMap()
+        val want = map[src] ?: return "❌ 读不到模块里的 $file，请确认模块已安装"
+        if (map[DAX_SYS] != want) {
+            WsaShell.execSyncCmd("umount '$DAX_SYS' 2>/dev/null; mount --bind '$src' '$DAX_SYS' 2>/dev/null")
+            val now = WsaShell.execSyncCmd("md5sum '$DAX_SYS' 2>/dev/null | cut -d' ' -f1").trim().removePrefix("*")
+            if (now != want) return "❌ 挂载 $file 失败，请检查模块状态"
+        }
+        WsaShell.execSyncCmd(
+            "[ -f '$vsrc' ] && umount '/vendor/etc/dolby/dax-default.xml' 2>/dev/null;" +
+            "[ -f '$vsrc' ] && mount --bind '$vsrc' '/vendor/etc/dolby/dax-default.xml' 2>/dev/null"
+        )
+        return null
+    }
+
+    /** 杀 DMS + audioserver，并在同一条脚本里等参数库重建；返回 (服务OK, 库OK) */
+    private fun restartDolbyStack(): Pair<Boolean, Boolean> {
+        val script = """
+            set +e
+            db=/data/vendor/dolby/dax_sqlite3.db
+            before=${'$'}(stat -c %Y ${'$'}db 2>/dev/null)
+            for n in vendor.dolby.dms.service audioserver; do
+              P=${'$'}(pidof ${'$'}n); [ -n "${'$'}P" ] && kill ${'$'}P 2>/dev/null
+            done
+            sleep 0.3
+            for n in vendor.dolby.dms.service audioserver; do
+              P=${'$'}(pidof ${'$'}n); [ -n "${'$'}P" ] && kill -9 ${'$'}P 2>/dev/null
+            done
+            i=0
+            while [ ${'$'}i -lt 60 ]; do
+              a=${'$'}(pidof audioserver); d=${'$'}(pidof vendor.dolby.dms.service)
+              [ -n "${'$'}a" ] && [ -n "${'$'}d" ] && break
+              i=${'$'}((i+1)); sleep 0.2
+            done
+            pidof vendor.dolby.dms.service >/dev/null 2>&1 || start vendor.dolby.dms.service 2>/dev/null
+            pidof audioserver >/dev/null 2>&1 || start audioserver 2>/dev/null
+            ok=0
+            pidof audioserver >/dev/null 2>&1 && pidof vendor.dolby.dms.service >/dev/null 2>&1 && ok=1
+            dbok=0
+            i=0
+            while [ ${'$'}i -lt 48 ]; do
+              now=${'$'}(stat -c %Y ${'$'}db 2>/dev/null)
+              if [ -n "${'$'}now" ] && [ "${'$'}now" != "${'$'}before" ]; then dbok=1; break; fi
+              i=${'$'}((i+1)); sleep 0.25
+            done
+            echo "STACK=${'$'}ok DB=${'$'}dbok"
+        """.trimIndent()
+        val r = WsaShell.execSyncCmd(script)
+        return r.contains("STACK=1") to r.contains("DB=1")
+    }
 
     private fun replaceInSpeaker(xml: String, paramName: String, newValue: String): String {
         val regex = Regex("(<${Regex.escape(paramName)}\\s+value\\s*=\\s*\")([^\"]*)(\"\\s*/>)")
